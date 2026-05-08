@@ -1,6 +1,11 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 import logging
+from typing import List
+
+from worker import ingest_source_task, get_embedding
+from database import get_db, init_db, DocumentChunk
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -12,9 +17,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
 class IngestRequest(BaseModel):
     source_url: str
     source_type: str # github, pdf, youtube, website, etc.
+    content: str = "" # Optional direct content for testing
+
+class SearchResult(BaseModel):
+    id: int
+    content: str
+    score: float
+    source_url: str
 
 @app.get("/")
 def read_root():
@@ -25,28 +41,46 @@ def health_check():
     return {"status": "ok"}
 
 @app.post("/api/ingest")
-async def ingest_source(request: IngestRequest, background_tasks: BackgroundTasks):
+async def ingest_source(request: IngestRequest):
     """
-    Endpoint to trigger ingestion of a source.
+    Endpoint to trigger ingestion of a source using Celery worker.
     """
     logger.info(f"Received ingestion request for {request.source_url} of type {request.source_type}")
     
-    # In a real app, we'd enqueue a Celery task here.
-    # For now, simulate background processing if we were using FastAPI's simple background tasks,
-    # though our plan states we'll use a worker (like Celery/RQ).
+    # Enqueue a Celery task
+    task = ingest_source_task.delay(request.source_url, request.source_type, request.content)
     
-    return {"message": "Ingestion task accepted", "task_id": "dummy-task-id-123"}
+    return {"message": "Ingestion task accepted", "task_id": str(task.id)}
 
-@app.get("/api/search")
-async def search(query: str, limit: int = 5):
+@app.get("/api/search", response_model=List[SearchResult])
+async def search(query: str, limit: int = 5, db: Session = Depends(get_db)):
     """
     Semantic search endpoint.
+    Performs a vector search against pgvector.
     """
-    # Placeholder for hybrid search implementation
-    return {
-        "query": query,
-        "results": [
-            {"id": "1", "content": f"Result related to {query}", "score": 0.95, "source": "github"},
-            {"id": "2", "content": "Another matching chunk...", "score": 0.88, "source": "notes"}
-        ]
-    }
+    try:
+        # Generate embedding for the query
+        query_embedding = get_embedding(query)
+        
+        # Perform vector similarity search using L2 distance (<-> operator in pgvector)
+        # Order by distance (closest first)
+        results = db.query(DocumentChunk).order_by(
+            DocumentChunk.embedding.l2_distance(query_embedding)
+        ).limit(limit).all()
+        
+        # Format response
+        search_results = []
+        for chunk in results:
+            # We approximate a score based on distance (closer = higher score)
+            # This is a basic mapping; real implementation would use cosine distance or BM25
+            search_results.append({
+                "id": chunk.id,
+                "content": chunk.content,
+                "score": 1.0, # Placeholder score visualization
+                "source_url": chunk.document.source_url if chunk.document else "unknown"
+            })
+            
+        return search_results
+    except Exception as e:
+        logger.error(f"Search failed: {e}")
+        raise HTTPException(status_code=500, detail="Search failed")
