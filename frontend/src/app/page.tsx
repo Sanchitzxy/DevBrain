@@ -1,8 +1,12 @@
+"use client"
+
 import { Chat } from "@/components/chat";
 import { Search } from "@/components/search";
 import { Button } from "@/components/ui/button";
+import { signOut, useSession } from "next-auth/react";
 
 export default function Home() {
+  const { data: session } = useSession()
   return (
     <div className="flex h-screen w-full bg-[#111113] text-white overflow-hidden font-sans">
       {/* Sidebar */}
@@ -59,11 +63,18 @@ export default function Home() {
             <Button className="bg-cyan-500 hover:bg-cyan-600 text-black h-8 text-xs font-semibold px-4 rounded-full">
               Deploy Index
             </Button>
-            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:bg-zinc-700 transition-colors">
+            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:bg-zinc-700 transition-colors text-sm">
               🔔
             </div>
-            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:bg-zinc-700 transition-colors">
-              👤
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-zinc-400">{session?.user?.name}</span>
+              <button 
+                onClick={() => signOut()}
+                className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50 transition-colors text-sm"
+                title="Sign out"
+              >
+                ⏻
+              </button>
             </div>
           </div>
         </header>
