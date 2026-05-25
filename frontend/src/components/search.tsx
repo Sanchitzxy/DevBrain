@@ -7,21 +7,37 @@ import { Button } from "@/components/ui/button"
 export function Search() {
   const [query, setQuery] = useState("")
 
+  const [isSearching, setIsSearching] = useState(false)
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Searching for:", query)
-    // Placeholder for semantic search
+    if (!query.trim()) return
+    setIsSearching(true)
+    
+    // Simulate fast search response
+    setTimeout(() => {
+      setIsSearching(false)
+    }, 600)
   }
 
   return (
-    <form onSubmit={handleSearch} className="w-full flex gap-2 max-w-2xl mx-auto">
-      <Input 
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search across all repositories, docs, and notes..."
-        className="w-full"
-      />
-      <Button type="submit" variant="secondary">Search</Button>
-    </form>
+    <div className="w-full max-w-2xl mx-auto">
+      <form onSubmit={handleSearch} className="w-full flex gap-2">
+        <Input 
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search across all repositories, docs, and notes..."
+          className="w-full bg-[#111113] border-zinc-700 text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-cyan-500/50"
+          disabled={isSearching}
+        />
+        <Button 
+          type="submit" 
+          className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700"
+          disabled={isSearching}
+        >
+          {isSearching ? "Searching..." : "Search"}
+        </Button>
+      </form>
+    </div>
   )
 }

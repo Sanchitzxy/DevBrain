@@ -16,13 +16,27 @@ export function Chat() {
     setMessages([...messages, { role: "user", content: input }])
     setInput("")
     
-    // Simulate API response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "This is a placeholder response based on the codebase context." }
-      ])
-    }, 1000)
+    // Simulate fast streaming response
+    const mockResponse = "I found the authentication logic in `src/auth/identity_provider.ts`. It uses JWT tokens and connects directly to the new Identity API service you deployed last week."
+    
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: "" }
+    ])
+
+    let i = 0
+    const intervalId = setInterval(() => {
+      if (i < mockResponse.length) {
+        setMessages((prev) => {
+          const newMessages = [...prev]
+          newMessages[newMessages.length - 1].content = mockResponse.substring(0, i + 1)
+          return newMessages
+        })
+        i++
+      } else {
+        clearInterval(intervalId)
+      }
+    }, 20) // Fast 20ms typewriter effect
   }
 
   return (
