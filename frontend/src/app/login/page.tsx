@@ -5,6 +5,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 export default function Login() {
+  const [isSignUp, setIsSignUp] = useState(false)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -13,7 +14,17 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    if (username.length < 3) {
+      setError("Username must be at least 3 characters.")
+      return
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.")
+      return
+    }
     
+    // In this demo environment, sign up and sign in use the same credentials flow
     const result = await signIn("credentials", {
       username,
       password,
@@ -21,7 +32,7 @@ export default function Login() {
     })
 
     if (result?.error) {
-      setError("Invalid credentials. Please try 'demo' and 'demo123'.")
+      setError("An error occurred during authentication.")
     } else {
       router.push("/")
       router.refresh()
@@ -33,7 +44,7 @@ export default function Login() {
       <div className="w-full max-w-md p-8 bg-[#161618] border border-zinc-800 rounded-xl shadow-2xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-cyan-400 mb-2">DevBrain</h1>
-          <p className="text-zinc-500">Sign in to your knowledge workspace</p>
+          <p className="text-zinc-500">{isSignUp ? "Create a new workspace account" : "Sign in to your knowledge workspace"}</p>
         </div>
 
         {error && (
@@ -67,12 +78,26 @@ export default function Login() {
             type="submit"
             className="w-full py-2 px-4 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold rounded-lg transition-colors mt-6"
           >
-            Sign In
+            {isSignUp ? "Sign Up" : "Sign In"}
           </button>
         </form>
         
-        <div className="mt-6 text-center text-xs text-zinc-600">
-          Hint: Use <span className="text-zinc-400">demo</span> / <span className="text-zinc-400">demo123</span>
+        <div className="mt-6 text-center text-sm text-zinc-500">
+          {isSignUp ? (
+            <>
+              Already have an account?{" "}
+              <button onClick={() => setIsSignUp(false)} className="text-cyan-400 hover:underline">
+                Sign In
+              </button>
+            </>
+          ) : (
+            <>
+              Don't have an account?{" "}
+              <button onClick={() => setIsSignUp(true)} className="text-cyan-400 hover:underline">
+                Sign Up
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
